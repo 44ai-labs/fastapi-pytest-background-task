@@ -8,8 +8,6 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 from main import app
 
-import httpx
-
 
 # It does not work with TestClient or ASGI framework
 @pytest.fixture()
