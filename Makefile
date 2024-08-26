@@ -17,3 +17,6 @@ mypy:
 check:
 	make format
 	make mypy
+
+test:
+	pytest test.py -vs --tb=short --disable-warnings
