@@ -5,6 +5,17 @@ import signal
 import httpx
 import pytest_asyncio
 
+from fastapi.testclient import TestClient
+from main import app
+
+import httpx
+
+
+# It does not work with TestClient or ASGI framework
+@pytest.fixture()
+def test_client() -> TestClient:
+    return TestClient(app)
+
 
 # Define a pytest fixture to start and stop the FastAPI server
 @pytest_asyncio.fixture(scope="session")
@@ -37,12 +48,44 @@ def start_fastapi_server():
         print("Server STDOUT:", stdout.decode())
 
 
-# Example test function using the server fixture
 @pytest.mark.asyncio
-async def test_server_response(start_fastapi_server):
+async def test_background_working(start_fastapi_server):
     # Assuming httpx_client is another fixture that provides an HTTP client
+    start_time = time.time()
     async with httpx.AsyncClient(base_url="http://0.0.0.0:8001") as client:
         response = await client.get("/start-task/")
     # print time
-    print(time.time(), "ANSWER")
+    print(time.time(), "ANSWER HERE")
     assert response.status_code == 200
+    end_time = time.time()
+    assert end_time - start_time <= 1.0  # it should be answered immediately
+
+
+# https://fastapi.tiangolo.com/advanced/async-tests/#example
+# https://github.com/fastapi/fastapi/issues/1273#issuecomment-648170128
+@pytest.mark.asyncio
+async def test_async_not_working():
+    # It does nto work with the AsyncClient
+    start_time = time.time()
+    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        response = await client.get("/start-task/")
+    # print time
+    print(time.time(), "ANSWER HERE")
+    assert response.status_code == 200
+    end_time = time.time()
+    assert (
+        end_time - start_time >= 5.0
+    )  # it should be answered immediately but takes 5 seconds
+
+
+def test_sync_not_working(test_client: TestClient):
+    start_time = time.time()
+    response = test_client.get("/start-task/")
+    # print time
+    print(time.time(), "ANSWER HERE")
+    assert response.status_code == 200
+    end_time = time.time()
+
+    assert (
+        end_time - start_time >= 5.0
+    )  # it should be answered immediately but takes 5 seconds
