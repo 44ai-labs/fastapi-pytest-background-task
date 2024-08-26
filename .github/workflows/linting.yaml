@@ -1,0 +1,35 @@
+name: Linting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.quality-command }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    strategy:
+      matrix:
+        quality-command:
+          - black
+          - ruff
+          - mypy
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Dependencies
+        run: |
+          pip install uv
+          uv pip install --system -r requirements.txt
+          uv pip install --system -r requirements-dev.txt
+      - name: run ${{ matrix.quality-command }}
+        run: |
+          make ${{ matrix.quality-command }}
